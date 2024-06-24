@@ -8,7 +8,9 @@ subtitle: ''
 description: ''
 keywords:
 author: John Doe
-language: en
+language: 
+  - en
+  - zh-cn
 timezone: ''
 
 # URL
