@@ -1,12 +1,10 @@
 ---
 title: Collection集合之HashMap源码学习记录（JDK8）
-date: 2024-06-24 12:03:27
+date: 2024-06-24 13:08:56
 tags:
 ---
-
-@[TOC](Collection集合之HashMap源码学习记录（JDK8）)
 # 1.HashMap的UML图：
-![Alt](https://img-blog.csdnimg.cn/direct/3fd97c7cc7894963ad7b8a61ac2334f2.png)​​​​
+![Alt](1-1.png)​​​​
 ## 1.1. 关于AbstractMap
 AbstractMap提供了Map接口的基本实现，最大限度的减少了实现Map接口所需的工作量。
 
@@ -36,15 +34,15 @@ public abstract Set<Entry<K,V>> entrySet();
 HashMap是Map接口基于Hash table的实现类。实现了Map接口的所有可选操作，允许null作为Map的key或value。HashMap不保证数据的顺序性，且不保证数据的顺序在一段时间内保持不变（当HashMap数据达到扩容限制时会重新hash，数据顺序发生改变）。
 
 HashMap使用了数组+链表+红黑树的实现
-![ALT](https://img-blog.csdnimg.cn/direct/4ef2eefdcb0948b7bf263281dea11e26.png)
+![ALT](2-1.png)
 
 
 ## 2.1. 数据存储
 HashMap的数据存放在transient Node<K,V>[] table中，即上述数组+链表+红黑树中的数组，table中的每个table[i]则是一个桶(bucket)，对应数组+链表+红黑树中的链表，当链表中的数据量大于阈值时，链表结构将重构成为数组+链表+红黑树中的红黑树。
 Node<K,V>本质上是对Map.Entry<K,V>的实现，其中存放了hash值，key值，value值和next节点，其中hash值标记了数据所属的桶(bucket)。
-![ALT](https://img-blog.csdnimg.cn/direct/9c7d93480d054e2faca171c19edc2c94.png)
+![ALT](2.1-1.png)
 当桶的数据结构由链表转换成红黑树时，Node<K,V>结构也对应的转换为TreeNode<K,V>。
-![ALT](https://img-blog.csdnimg.cn/direct/c094ae14905544ef90fa8d83fb9d4681.png)
+![ALT](2.1-2.png)
 
 
 ## 2.2. 几个关键静态变量
@@ -166,11 +164,11 @@ MIN_TREEIFY_CAPACITY指定了HashMap进行树化的最小数组容量。
             else if (p instanceof TreeNode)
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
-            	// 遍历桶中的链表
+                // 遍历桶中的链表
                 for (int binCount = 0; ; ++binCount) {
-                	// 遍历至尾节点
+                    // 遍历至尾节点
                     if ((e = p.next) == null) {
-                    	// 将新的key-val插入到尾部
+                        // 将新的key-val插入到尾部
                         p.next = newNode(hash, key, value, null);
                         // 当桶大小达到TREEIFY_THRESHOLD时，
                         // 调用treeifyBin对链表做树化处理
@@ -178,7 +176,7 @@ MIN_TREEIFY_CAPACITY指定了HashMap进行树化的最小数组容量。
                             treeifyBin(tab, hash);
                         break;
                     }
-					// 当链表中的元素的key与新插入的key相同时停止遍历
+                    // 当链表中的元素的key与新插入的key相同时停止遍历
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
                         break;
@@ -187,7 +185,7 @@ MIN_TREEIFY_CAPACITY指定了HashMap进行树化的最小数组容量。
             }
             // e!=null说明HashMap中key已经存在
             if (e != null) { // existing mapping for key
-            	// 取原key-val的value值
+                // 取原key-val的value值
                 V oldValue = e.value;
                 // 原value替换为新的value值
                 if (!onlyIfAbsent || oldValue == null)
@@ -207,23 +205,23 @@ MIN_TREEIFY_CAPACITY指定了HashMap进行树化的最小数组容量。
 ```
 ## 2.4. 树化
 考虑一种极端情况，所有put的新key-value键值对的key对应的hash值都相同时，所有的键值对都会插入到同一个桶的末尾，当插入到第九个键值对时超过了TREEIFY_THRESHOLD的阈值8，此时将进入treeifyBin方法尝试树化链表。
-![Alt](https://img-blog.csdnimg.cn/direct/53008a7808154ce78a33cf7bcd985fc3.png)
+![Alt](2.4-1.png)
 但此时HashMap的table大小为默认值16，小于最小树化阈值64，所以会优先进行resize操作扩容。
 
-![Alt](https://img-blog.csdnimg.cn/direct/32c91a2b1f1648a6a5952790dc05786f.png)
+![Alt](2.4-2.png)
 
 在resize方法中对table大小做2倍扩容
 
-![Alt](https://img-blog.csdnimg.cn/direct/e3e1f7049afc4a8aa491e8195308e6a1.png)
+![Alt](2.4-3.png)
 继续添加hash值相同的键值对，再次resize后table的大小达到64，此时再次添加相同hash值的键值对，进入treeifyBin时就会进入树化逻辑，如下图：
-![Alt](https://img-blog.csdnimg.cn/direct/924a594440ee436d84b16f350a01607c.png)
+![Alt](2.4-4.png)
 
 
 ## 2.5. 扩容
 通常，当使用put添加键值对时，若HashMap的size达到threshold时，调用resize()方法对table进行扩容。
-![Alt](https://img-blog.csdnimg.cn/direct/e96db752b18344179a5426efe9e2e227.png)
+![Alt](2.5-1.png)
 扩容时table大小变为原来的两倍，threshold=table容量*loadFactor同样变为原来的两倍。
-![Alt](https://img-blog.csdnimg.cn/direct/1a24644113274b058175079b847942ee.png)
+![Alt](2.5-2.png)
 因为使用的是2倍扩容的方式，扩容后每个桶的索引要么保持原样，要么以2的幂的偏移量偏移。
 
 1. 如对于hash值为1000的元素，在容量为16的table中的索引为1000&(16-1) = 8，即001111101000 & 1111 = 1000
@@ -260,8 +258,8 @@ MIN_TREEIFY_CAPACITY指定了HashMap进行树化的最小数组容量。
 对原key的hash值做了处理，将原hash值的高十六位无符号右移16位至低位后与原hash值做异或运算得到新的hash值。例如
 原hash值为 |1111 0000 1010 0101 0101 1010 1111 0000
 -------- | ------------
-**右移16位得到**	  |**0000 0000 0000 0000 1111 0000 1010 0101**
-**异或运算后得到** |	**1111 0000 1010 0101 1010 1010 0101 0101**
+**右移16位得到**   |**0000 0000 0000 0000 1111 0000 1010 0101**
+**异或运算后得到** |   **1111 0000 1010 0101 1010 1010 0101 0101**
 
 这么做的目的是将hash值的高位的影响带入到hash过程中去（这种方法并不能完全解决hash冲突的问题）。
 
